@@ -4,7 +4,7 @@ from http import HTTPStatus
 def test_read_root(client):
     response = client.get('/')
     assert response.status_code == HTTPStatus.OK
-    assert response.json() == {'Hello': 'World'}
+    assert response.json() == {'message': 'Hello World'}
 
 
 def test_create_user(client):
@@ -17,7 +17,11 @@ def test_create_user(client):
         },
     )
     assert response.status_code == HTTPStatus.CREATED
-    assert response.json() == {'id': 1, 'username': 'test', 'email': 'test@test.com'}
+    assert response.json() == {
+        'id': 1,
+        'username': 'test',
+        'email': 'test@test.com'
+        }
 
 
 def test_get_users(client):
@@ -26,7 +30,7 @@ def test_get_users(client):
     assert response.json() == {'users': [{
         'username': 'test',
         'email': 'test@test.com',
-        'password': 'test',
+        'id': 1,
     },]}
 
 
@@ -35,7 +39,7 @@ def test_update_user(client):
         '/users/1',
         json={
             'username': 'updated_test',
-            'email':'email@email.com',
+            'email': 'email@email.com',
             'password': 'updated_test',
         })
 
@@ -45,17 +49,19 @@ def test_update_user(client):
         'username': 'updated_test',
         'email': 'email@email.com',
         }
-    
+
+
 def test_update_non_existent_user(client):
     response = client.put(
         '/users/0',
         json={
             'username': 'non_existent',
-            'email': ''
+            'email': '',
             'password': 'non_existent',
         })
     assert response.status_code == HTTPStatus.NOT_FOUND
     assert response.json() == {'detail': 'User not found'}
+
 
 def test_delete_user(client):
     response = client.delete('/users/1')
