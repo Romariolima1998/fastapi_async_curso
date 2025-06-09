@@ -1,5 +1,7 @@
 from http import HTTPStatus
 
+from fastapi_zero.schemas import UserSchemaOutput
+
 
 def test_read_root(client):
     response = client.get('/')
@@ -22,21 +24,25 @@ def test_create_user(client):
         'username': 'test',
         'email': 'test@test.com'
         }
+    
 
-
-def test_get_users(client):
+def test_read_users_no_user(client):
     response = client.get('/users/')
     assert response.status_code == HTTPStatus.OK
-    assert response.json() == {'users': [{
-        'username': 'test',
-        'email': 'test@test.com',
-        'id': 1,
-    },]}
+    assert response.json() == {'users': []}
 
 
-def test_update_user(client):
+def test_read_users_with_user(client, user):
+    response = client.get('/users/')
+
+    user_schema = UserSchemaOutput.model_validate(user).model_dump()
+    assert response.status_code == HTTPStatus.OK
+    assert response.json() == {'users': [user_schema]}
+
+
+def test_update_user(client, user):
     response = client.put(
-        '/users/1',
+        f'/users/{user.id}',
         json={
             'username': 'updated_test',
             'email': 'email@email.com',
@@ -45,7 +51,7 @@ def test_update_user(client):
 
     assert response.status_code == HTTPStatus.OK
     assert response.json() == {
-        'id': 1,
+        'id': user.id,
         'username': 'updated_test',
         'email': 'email@email.com',
         }
@@ -56,14 +62,14 @@ def test_update_non_existent_user(client):
         '/users/0',
         json={
             'username': 'non_existent',
-            'email': '',
+            'email': 'no@exists.com',
             'password': 'non_existent',
         })
     assert response.status_code == HTTPStatus.NOT_FOUND
     assert response.json() == {'detail': 'User not found'}
 
 
-def test_delete_user(client):
-    response = client.delete('/users/1')
-    assert response.status_code == HTTPStatus.NO_CONTENT
+def test_delete_user(client, user):
+    response = client.delete(f'/users/{user.id}')
+
     assert response.json() == {'message': 'User deleted successfully'}
