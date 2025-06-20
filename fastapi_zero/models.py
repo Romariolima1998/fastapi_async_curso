@@ -1,15 +1,14 @@
 import datetime
 
-from sqlalchemy.orm import Mapped, mapped_column, registry
 from sqlalchemy import func
-
+from sqlalchemy.orm import Mapped, mapped_column, registry
 
 table_registry = registry()
 
 
 @table_registry.mapped_as_dataclass
 class User:
-    __tablename__ = "users"
+    __tablename__ = 'users'
 
     id: Mapped[int] = mapped_column(init=False, primary_key=True)
     username: Mapped[str] = mapped_column(unique=True, nullable=False)
@@ -19,6 +18,8 @@ class User:
         init=False, server_default=func.now(), nullable=False
     )
     updated_at: Mapped[datetime.datetime] = mapped_column(
-        init=False, server_default=func.now(), nullable=False,
-        onupdate=func.now()
+        init=False,
+        server_default=func.now(),
+        nullable=False,
+        onupdate=func.now(),
     )

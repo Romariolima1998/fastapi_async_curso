@@ -6,7 +6,7 @@ def test_create_user(session, mock_db_time):
         user = User(
             username='test_user',
             email='test_user@example.com',
-            password='securepassword'
+            password='securepassword',
         )
 
         session.add(user)

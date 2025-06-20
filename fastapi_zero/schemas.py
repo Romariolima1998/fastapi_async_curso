@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr, ConfigDict
+from pydantic import BaseModel, ConfigDict, EmailStr
 
 
 class MessageOutput(BaseModel):
@@ -24,3 +24,8 @@ class User_DB(UserSchemaInput):
 
 class UserListSchema(BaseModel):
     users: list[UserSchemaOutput]
+
+
+class Token(BaseModel):
+    token_type: str
+    access_token: str
