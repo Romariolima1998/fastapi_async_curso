@@ -1,24 +1,20 @@
 from datetime import datetime, timedelta
+from http import HTTPStatus
 from zoneinfo import ZoneInfo
 
-from http import HTTPStatus
 from fastapi import Depends, HTTPException
-from jwt import encode, decode, DecodeError
-from pwdlib import PasswordHash
 from fastapi.security import OAuth2PasswordBearer
-from sqlalchemy.orm import Session
+from jwt import DecodeError, decode, encode
+from pwdlib import PasswordHash
 from sqlalchemy import Select
+from sqlalchemy.orm import Session
 
 from fastapi_zero.database import get_session
 from fastapi_zero.models import User
+from fastapi_zero.settings import settings
 
 pwd_context = PasswordHash.recommended()
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl='token')
-
-
-SECRET_KEY = 'your-secret-key'
-ALGORITHM = 'HS256'
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl='auth/token')
 
 
 def get_password_hash(password: str):
@@ -33,17 +29,19 @@ def create_access_token(data: dict):
     to_encode = data.copy()
 
     expire = datetime.now(tz=ZoneInfo('UTC')) + timedelta(
-        minutes=ACCESS_TOKEN_EXPIRE_MINUTES
+        minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES
     )
     to_encode.update({'exp': expire})
 
-    encoded_jwt = encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    encoded_jwt = encode(
+        to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM
+        )
     return encoded_jwt
 
 
 def get_current_user(
-        session: Session = Depends(get_session),
-        token: str = Depends(oauth2_scheme)
+    session: Session = Depends(get_session),
+    token: str = Depends(oauth2_scheme),
 ):
     credentials_exception = HTTPException(
         status_code=HTTPStatus.UNAUTHORIZED,
@@ -52,13 +50,15 @@ def get_current_user(
     )
 
     try:
-        payload = decode(token, SECRET_KEY, algorithms=ALGORITHM)
+        payload = decode(
+            token, settings.SECRET_KEY, algorithms=settings.ALGORITHM
+            )
         subject_email = payload.get('sub')
         if not subject_email:
             raise credentials_exception
     except DecodeError:
         raise credentials_exception
-    
+
     user = session.scalar(Select(User).where(User.email == subject_email))
 
     if not user:
