@@ -29,8 +29,8 @@ CurrentUser = Annotated[User, Depends(get_current_user)]
     status_code=HTTPStatus.CREATED,
     response_model=UserSchemaOutput,
 )
-def create_user(user: UserSchemaInput, session: GetSession):
-    user_db = session.scalar(
+async def create_user(user: UserSchemaInput, session: GetSession):
+    user_db = await session.scalar(
         select(User).where(
             (User.username == user.username) | (User.email == user.email)
         )
@@ -53,8 +53,8 @@ def create_user(user: UserSchemaInput, session: GetSession):
         password=get_password_hash(user.password),
     )
     session.add(new_user)
-    session.commit()
-    session.refresh(new_user)
+    await session.commit()
+    await session.refresh(new_user)
     return new_user
 
 
@@ -62,12 +62,12 @@ def create_user(user: UserSchemaInput, session: GetSession):
     '/',
     status_code=HTTPStatus.OK,
 )
-def get_users(
+async def get_users(
     session: GetSession,
     current_user: CurrentUser,
     firlter_users: Annotated[FilterPage, Query()]
 ) -> UserListSchema:
-    users = session.scalars(
+    users = await session.scalars(
         select(User).limit(firlter_users.limit).offset(firlter_users.offset)
         )
 
@@ -79,7 +79,7 @@ def get_users(
     status_code=HTTPStatus.OK,
     response_model=UserSchemaOutput,
 )
-def update_user(
+async def update_user(
     user_id: int,
     user: UserSchemaInput,
     session: GetSession,
@@ -95,8 +95,8 @@ def update_user(
         current_user.email = user.email
         current_user.password = get_password_hash(user.password)
 
-        session.commit()
-        session.refresh(current_user)
+        await session.commit()
+        await session.refresh(current_user)
 
         return current_user
     except IntegrityError:
@@ -109,7 +109,7 @@ def update_user(
 @router.delete(
     '/{user_id}', status_code=HTTPStatus.OK, response_model=MessageOutput
 )
-def delete_user(
+async def delete_user(
     user_id: int,
     session: GetSession,
     current_user: CurrentUser,
@@ -119,7 +119,7 @@ def delete_user(
             status_code=HTTPStatus.FORBIDDEN, detail='not enough permissions'
         )
 
-    session.delete(current_user)
-    session.commit()
+    await session.delete(current_user)
+    await session.commit()
 
     return {'message': 'User deleted successfully'}

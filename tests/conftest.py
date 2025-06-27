@@ -1,11 +1,12 @@
 from contextlib import contextmanager
 from datetime import datetime
 
+import pytest_asyncio
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine, event
-from sqlalchemy.orm import Session
+from sqlalchemy import event
 from sqlalchemy.pool import StaticPool
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 
 from fastapi_zero.app import app
 from fastapi_zero.database import get_session
@@ -15,7 +16,7 @@ from fastapi_zero.security import get_password_hash
 
 @pytest.fixture
 def client(session):
-    def get_session_override():
+    async def get_session_override():
         return session
 
     with TestClient(app) as client:
@@ -26,20 +27,23 @@ def client(session):
     app.dependency_overrides.clear()
 
 
-@pytest.fixture
-def session():
-    engine = create_engine(
-        'sqlite:///:memory:',
+@pytest_asyncio.fixture
+async def session():
+    engine = create_async_engine(
+        'sqlite+aiosqlite:///:memory:',
         echo=True,
         connect_args={'check_same_thread': False},
         poolclass=StaticPool,
     )
-    table_registry.metadata.create_all(engine)
-    with Session(engine) as session:
-        yield session
-        table_registry.metadata.drop_all(engine)
 
-        table_registry.metadata.drop_all(engine)
+    async with engine.begin() as conn:
+        await conn.run_sync(table_registry.metadata.create_all)
+
+    async with AsyncSession(engine, expire_on_commit=False) as session:
+        yield session
+
+    async with engine.begin() as conn:
+        await conn.run_sync(table_registry.metadata.drop_all)
 
 
 @contextmanager
@@ -60,8 +64,8 @@ def mock_db_time():
     return _mock_db_time
 
 
-@pytest.fixture
-def user(session) -> User:
+@pytest_asyncio.fixture
+async def user(session: AsyncSession) -> User:
     password_clean = 'test'
 
     _user = User(
@@ -71,8 +75,8 @@ def user(session) -> User:
     )
 
     session.add(_user)
-    session.commit()
-    session.refresh(_user)
+    await session.commit()
+    await session.refresh(_user)
 
     _user.password_clean = password_clean
 

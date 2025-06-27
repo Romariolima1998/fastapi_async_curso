@@ -1,5 +1,7 @@
 from http import HTTPStatus
 
+import pytest
+
 
 def test_jwt_with_token_invalid(client, user):
     response = client.delete(
@@ -10,7 +12,7 @@ def test_jwt_with_token_invalid(client, user):
     assert response.json() == {'detail': 'Could not validate credentials'}
 
 
-def test_get_token(client, user):
+async def test_get_token(client, user):
     response = client.post(
         '/auth/token',
         data={

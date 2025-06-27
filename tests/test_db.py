@@ -1,7 +1,10 @@
+import pytest
+
 from fastapi_zero.models import User
 
 
-def test_create_user(session, mock_db_time):
+@pytest.mark.asyncio
+async def test_create_user(session, mock_db_time):
     with mock_db_time() as time:
         user = User(
             username='test_user',
@@ -10,8 +13,8 @@ def test_create_user(session, mock_db_time):
         )
 
         session.add(user)
-        session.commit()
-        session.refresh(user)
+        await session.commit()
+        await session.refresh(user)
 
         assert user.id is not None
         assert user.username == 'test_user'
